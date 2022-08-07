@@ -37,6 +37,15 @@ func NewReflector(lw ListerWatcher, expectedType interface{}, store Store, resyn
 
 保证可靠性、实时性和顺序性。
 
+```
+kubectl proxy
+```
+
+api接口:
+```
+https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#list-pod-v1-core
+```
+
 - List：指定类型资源对象的全量更新。并将其更新到缓存当中。
   ```
   curl -iv http://127.0.0.1:8001/api/v1/namespaces/default/pods

@@ -53,7 +53,7 @@ type DeltaFIFO struct {
   //默认使用MetaNamespaceKeyFunc，默认使用<namespace>/<name>的格式，不指定namespace时用<name>
   //那么我们从队列的key里面也可以获取到重要的信息了
 	keyFunc KeyFunc
-  //其实就是Indexer
+  //其实就是Indexer，存放全量数据
 	knownObjects KeyListerGetter
   //...
 }
