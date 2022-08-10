@@ -2,6 +2,10 @@ package pkg
 
 import (
 	"context"
+	"log"
+	"reflect"
+	"time"
+
 	v14 "k8s.io/api/core/v1"
 	v12 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -15,21 +19,18 @@ import (
 	v1 "k8s.io/client-go/listers/networking/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"reflect"
-	"time"
 )
 
 const (
-	workNum = 5
+	workNum  = 5
 	maxRetry = 10
 )
-
 
 type controller struct {
 	client        kubernetes.Interface
 	ingressLister v1.IngressLister
 	serviceLister coreLister.ServiceLister
-	queue workqueue.RateLimitingInterface
+	queue         workqueue.RateLimitingInterface
 }
 
 func (c *controller) updateService(oldObj interface{}, newObj interface{}) {
@@ -70,7 +71,7 @@ func (c *controller) Run(stopCh chan struct{}) {
 	for i := 0; i < workNum; i++ {
 		go wait.Until(c.worker, time.Minute, stopCh)
 	}
-	<- stopCh
+	<-stopCh
 }
 
 func (c *controller) worker() {
@@ -113,19 +114,23 @@ func (c *controller) syncService(key string) error {
 	//新增和删除
 	_, ok := service.GetAnnotations()["ingress/http"]
 	ingress, err := c.ingressLister.Ingresses(namespaceKey).Get(name)
-	if err != nil && !errors.IsNotFound(err){
+	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 
 	if ok && errors.IsNotFound(err) {
 		//create ingress
+		log.Println("create ingress")
 		ig := c.constructIngress(service)
 		_, err := c.client.NetworkingV1().Ingresses(namespaceKey).Create(context.TODO(), ig, v13.CreateOptions{})
 		if err != nil {
+			log.Println("create ingress error", err)
 			return err
 		}
 	} else if !ok && ingress != nil {
 		//delete ingress
+		log.Println("delete ingress")
+
 		err := c.client.NetworkingV1().Ingresses(namespaceKey).Delete(context.TODO(), name, v13.DeleteOptions{})
 		if err != nil {
 			return err
@@ -145,7 +150,7 @@ func (c *controller) handlerError(key string, err error) {
 	c.queue.Forget(key)
 }
 
-func (c *controller) constructIngress(service *v14.Service) *v12.Ingress{
+func (c *controller) constructIngress(service *v14.Service) *v12.Ingress {
 	ingress := v12.Ingress{}
 
 	ingress.ObjectMeta.OwnerReferences = []v13.OwnerReference{
@@ -165,7 +170,7 @@ func (c *controller) constructIngress(service *v14.Service) *v12.Ingress{
 					HTTP: &v12.HTTPIngressRuleValue{
 						Paths: []v12.HTTPIngressPath{
 							{
-								Path: "/",
+								Path:     "/",
 								PathType: &pathType,
 								Backend: v12.IngressBackend{
 									Service: &v12.IngressServiceBackend{
@@ -191,11 +196,11 @@ func NewController(client kubernetes.Interface, serviceInformer informer.Service
 		client:        client,
 		ingressLister: ingressInformer.Lister(),
 		serviceLister: serviceInformer.Lister(),
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ingressManager"),
+		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ingressManager"),
 	}
 
 	serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: c.addService,
+		AddFunc:    c.addService,
 		UpdateFunc: c.updateService,
 	})
 

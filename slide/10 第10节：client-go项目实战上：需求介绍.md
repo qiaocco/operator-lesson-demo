@@ -46,3 +46,12 @@ _class: lead
      - 不包含指定annotation，检查Ingress资源对象是否存在，存在则删除，不存在则忽略
 
 3. Ingress Controller根据`Ingress`为我们更新nginx的配置，最后，终端用户便可以通过Ingress Controller的地址访问到开发团队指定的服务
+
+部署ingress controller:
+```
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.3.0/deploy/static/provider/cloud/deploy.yaml
+
+```
+
+ingress nginx 文档：
+https://kubernetes.github.io/ingress-nginx/user-guide/basic-usage/

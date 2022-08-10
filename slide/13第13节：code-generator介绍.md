@@ -47,9 +47,8 @@ _class: lead
 2. 编译项目，安装代码生成工具，这里我们只安装我们接下来会用到的工具
 
    ```shell
-   go install code-generator/cmd/{client-gen,lister-gen,informer-gen,deepcopy-gen}
-   ```
-
+    go install ./cmd/{client-gen,lister-gen,informer-gen,deepcopy-gen}   ```
+    ```
 ---
 
 ### code-generator(续)
