@@ -8,10 +8,8 @@ import (
 )
 
 var (
-	Scheme = runtime.NewScheme()
+	Scheme       = runtime.NewScheme()
 	GroupVersion = schema.GroupVersion{Group: "baiding.tech", Version: "v1"}
-	Codecs = serializer.NewCodecFactory(Scheme)
-	NewSchemeBuilder()
+	Codecs       = serializer.NewCodecFactory(Scheme)
+	//NewSchemeBuilder()
 )
-
-
