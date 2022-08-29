@@ -2,5 +2,15 @@ domain: baiding.tech
 layout:
 - go.kubebuilder.io/v3
 projectName: kubebuilder-demo-myself
-repo: github.com/kubebuilder-demo-myself
+repo: github.com/kubebuilder-demo
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: baiding.tech
+  group: ingress
+  kind: App
+  path: github.com/kubebuilder-demo/api/v1beta1
+  version: v1beta1
 version: "3"
