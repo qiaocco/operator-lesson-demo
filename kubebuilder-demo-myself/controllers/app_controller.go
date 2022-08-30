@@ -19,12 +19,14 @@ package controllers
 import (
 	"context"
 
+	netv1 "k8s.io/api/networking/v1"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/kubebuilder-demo/controllers/utils"
 	v1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,6 +58,7 @@ type AppReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.12.2/pkg/reconcile
 func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+	logger.Info("reconcile")
 	app := &ingressv1beta1.App{}
 	//从缓存中获取app
 	if err := r.Get(ctx, req.NamespacedName, app); err != nil {
@@ -76,10 +79,6 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 				logger.Error(err, "create deploy failed")
 				return ctrl.Result{}, err
 			}
-		}
-	} else {
-		if err := r.Update(ctx, deployment); err != nil {
-			return ctrl.Result{}, err
 		}
 	}
 
@@ -111,7 +110,7 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		}
 	}
 
-	//3. Ingress的处理,ingress配置可能为空
+	////3. Ingress的处理,ingress配置可能为空
 	ingress := utils.NewIngress(app)
 	if err := controllerutil.SetControllerReference(app, ingress, r.Scheme); err != nil {
 		return ctrl.Result{}, err
@@ -145,7 +144,7 @@ func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ingressv1beta1.App{}).
 		Owns(&v1.Deployment{}).
-		Owns(&netv1.Ingress{}).
 		Owns(&corev1.Service{}).
+		Owns(&netv1.Ingress{}).
 		Complete(r)
 }
