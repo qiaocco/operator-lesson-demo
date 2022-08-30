@@ -14,26 +14,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1
 
 import (
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// AppSpec defines the desired state of App
-type AppSpec struct {
+type ConcurrencyPolicy string
+
+const (
+	AllowConcurrent   ConcurrencyPolicy = "Allow"
+	ForbidConcurrent  ConcurrencyPolicy = "Forbid"
+	ReplaceConcurrent ConcurrencyPolicy = "Replace"
+)
+
+// CronJobSpec defines the desired state of CronJob
+type CronJobSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of App. Edit app_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// 定时任务表达式
+	Schedule                string                  `json:"schedule"`
+	StartingDeadlineSeconds *int64                  `json:"starting_deadline_seconds,omitempty"`
+	ConcurrencyPolicy       ConcurrencyPolicy       `json:"concurrency_policy"`
+	Suspend                 *bool                   `json:"suspend,omitempty"`
+	JobTemplate             batchv1.JobTemplateSpec `json:"job_template"`
 }
 
-// AppStatus defines the observed state of App
-type AppStatus struct {
+// CronJobStatus defines the observed state of CronJob
+type CronJobStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -41,24 +54,24 @@ type AppStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// App is the Schema for the apps API
-type App struct {
+// CronJob is the Schema for the cronjobs API
+type CronJob struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AppSpec   `json:"spec,omitempty"`
-	Status AppStatus `json:"status,omitempty"`
+	Spec   CronJobSpec   `json:"spec,omitempty"`
+	Status CronJobStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// AppList contains a list of App
-type AppList struct {
+// CronJobList contains a list of CronJob
+type CronJobList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []App `json:"items"`
+	Items           []CronJob `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&App{}, &AppList{})
+	SchemeBuilder.Register(&CronJob{}, &CronJobList{})
 }
