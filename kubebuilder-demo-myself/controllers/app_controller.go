@@ -19,6 +19,15 @@ package controllers
 import (
 	"context"
 
+	"github.com/kubebuilder-demo/controllers/utils"
+	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+
+	v1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,9 +56,88 @@ type AppReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.12.1/pkg/reconcile
 func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
+	app := &ingressv1beta1.App{}
+	//从缓存中获取app
+	if err := r.Get(ctx, req.NamespacedName, app); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 
-	// TODO(user): your logic here
+	//根据app的配置进行处理
+	//1. Deployment的处理
+
+	deployment := utils.NewDeployment(app)
+	if err := controllerutil.SetControllerReference(app, deployment, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+	//查找同名deployment
+	d := &v1.Deployment{}
+	if err := r.Get(ctx, req.NamespacedName, d); err != nil {
+		if errors.IsNotFound(err) {
+			if err := r.Create(ctx, deployment); err != nil {
+				logger.Error(err, "create deploy failed")
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		if err := r.Update(ctx, deployment); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	//2. Service的处理
+	service := utils.NewService(app)
+	if err := controllerutil.SetControllerReference(app, service, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+	//查找指定service
+	s := &corev1.Service{}
+	if err := r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, s); err != nil {
+		if errors.IsNotFound(err) && app.Spec.EnableService {
+			if err := r.Create(ctx, service); err != nil {
+				logger.Error(err, "create service failed")
+				return ctrl.Result{}, err
+			}
+		}
+		if !errors.IsNotFound(err) && app.Spec.EnableService {
+			return ctrl.Result{}, err
+		}
+	} else {
+		if app.Spec.EnableService {
+			logger.Info("skip update")
+		} else {
+			if err := r.Delete(ctx, s); err != nil {
+				return ctrl.Result{}, err
+			}
+
+		}
+	}
+
+	//3. Ingress的处理,ingress配置可能为空
+	ingress := utils.NewIngress(app)
+	if err := controllerutil.SetControllerReference(app, ingress, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+	i := &netv1.Ingress{}
+	if err := r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, i); err != nil {
+		if errors.IsNotFound(err) && app.Spec.EnableIngress {
+			if err := r.Create(ctx, ingress); err != nil {
+				logger.Error(err, "create ingress failed")
+				return ctrl.Result{}, err
+			}
+		}
+		if !errors.IsNotFound(err) && app.Spec.EnableIngress {
+			return ctrl.Result{}, err
+		}
+	} else {
+		if app.Spec.EnableIngress {
+			logger.Info("skip update")
+		} else {
+			if err := r.Delete(ctx, i); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -58,5 +146,8 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ingressv1beta1.App{}).
+		Owns(&v1.Deployment{}).
+		Owns(&netv1.Ingress{}).
+		Owns(&corev1.Service{}).
 		Complete(r)
 }
