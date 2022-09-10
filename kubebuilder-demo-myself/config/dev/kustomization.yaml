@@ -10,6 +10,7 @@ patches:
   - patch: |
       - op: "add"
         path: "/spec/ipAddresses"
+        # 如何设置宿主机ip，参考https://minikube.sigs.k8s.io/docs/handbook/host-access/
         value: [ "192.168.65.2" ]
     target:
       kind: Certificate
