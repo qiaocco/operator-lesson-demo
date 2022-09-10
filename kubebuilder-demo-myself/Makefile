@@ -19,6 +19,27 @@ SHELL = /usr/bin/env bash -o pipefail
 .PHONY: all
 all: build
 
+gomod-init:
+	go mod init github.com/kubebuilder-demo
+
+init:
+	kubebuilder init --domain baiding.tech
+
+create-api:
+	kubebuilder create api --group ingress  --version v1beta1 --kind App
+
+create-webhook:
+	kubebuilder create webhook --group ingress --version v1beta1 --kind App --defaulting --programmatic-validation
+
+.PHONY: dev
+dev: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/dev | kubectl apply -f -
+
+.PHONY: undev
+undev: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) build config/dev | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
 ##@ General
 
 # The help target prints out all targets with their descriptions organized
@@ -69,7 +90,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 .PHONY: docker-build
-docker-build: test ## Build docker image with the manager.
+docker-build:  ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
 .PHONY: docker-push
